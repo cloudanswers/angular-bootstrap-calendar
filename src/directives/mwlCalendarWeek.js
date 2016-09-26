@@ -29,7 +29,59 @@ angular
       } else {
         vm.view = calendarHelper.getWeekView(vm.events, vm.viewDate);
       }
+
+      vm.view.allDayEvents = vm.arrangeAllDay(vm.view.events.filter(function(event) {
+        return event.allDay || !moment(event.startsAt).isSame(event.endsAt, 'day');
+      }));
+      console.log(vm.view.allDayEvents);
+
+      vm.view.nonAllDayEvents = vm.view.events.filter(function(event) {
+        return !event.allDay && moment(event.startsAt).isSame(event.endsAt, 'day');
+      });
+
     });
+
+    vm.arrangeAllDay = function(events) {
+      var rows = [];
+      angular.forEach(events, function(e) {
+        var rowInsert = -1;
+        e.draggable = e.daySpan !== 7;
+        for (var i = 0; i < rows.length; i++) {
+          if (vm.fitsInRow(e, rows[i])) {
+            rowInsert = i;
+            break;
+          }
+        }
+        if (rowInsert === -1) {
+          rows.push([e]);
+        } else {
+          rows[rowInsert].push(e);
+        }
+      });
+      return rows;
+    };
+
+    vm.getSlotsTaken = function(e) {
+      var slotsTaken = [];
+      for (var i = e.dayOffset; i < e.dayOffset + e.daySpan; i++) {
+        slotsTaken.push(i);
+      }
+      return slotsTaken;
+    };
+
+    vm.fitsInRow = function(event, row) {
+      var rowSlotsTaken = [];
+      var eventSlotsTaken = vm.getSlotsTaken(event);
+      for (var x = 0; x < row.length; x++) {
+        rowSlotsTaken = rowSlotsTaken.concat(vm.getSlotsTaken(row[x]));
+      }
+      for (var i = 0; i < eventSlotsTaken.length; i++) {
+        if (rowSlotsTaken.includes(eventSlotsTaken[i])) {
+          return false;
+        }
+      }
+      return true;
+    };
 
     vm.weekDragged = function(event, daysDiff, minuteChunksMoved) {
 
@@ -74,7 +126,10 @@ angular
 
     };
 
-    vm.tempTimeChanged = function(event, minuteChunksMoved) {
+    vm.tempTimeChanged = function(event, minuteChunksMoved, ignore) {
+      if (ignore) {
+        return;
+      }
       var minutesDiff = minuteChunksMoved * vm.dayViewSplit;
       event.tempStartsAt = moment(event.startsAt).add(minutesDiff, 'minutes').toDate();
     };

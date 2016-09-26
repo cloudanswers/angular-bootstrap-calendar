@@ -75,6 +75,18 @@ angular
 
     }
 
+    function dedupe(events) {
+      var bridge = {};
+      var ret = [];
+      events.forEach(function(e) {
+        bridge[e.id] = e;
+      });
+      for (var k in bridge) {
+        ret.push(bridge[k]);
+      }
+      return ret;
+    }
+
     function filterEventsInPeriod(events, startPeriod, endPeriod) {
       return events.filter(function(event) {
         return eventIsInPeriod(event, startPeriod, endPeriod);
@@ -317,9 +329,12 @@ angular
       var weekView = getWeekView(events, viewDate);
       var newEvents = [];
       weekView.days.forEach(function(day) {
-        var dayEvents = weekView.events.filter(function(event) {
-          return moment(event.startsAt).startOf('day').isSame(moment(day.date).startOf('day'));
-        });
+
+        var dayEvents = filterEventsInPeriod(
+          weekView.events,
+          moment(day.date).startOf('day').toDate(),
+          moment(day.date).endOf('day').toDate()
+        );
         var newDayEvents = getDayView(
           dayEvents,
           day.date,
@@ -329,7 +344,7 @@ angular
         );
         newEvents = newEvents.concat(newDayEvents);
       });
-      weekView.events = newEvents;
+      weekView.events = dedupe(newEvents);
       return weekView;
     }
 

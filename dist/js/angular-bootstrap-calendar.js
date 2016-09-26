@@ -776,7 +776,59 @@ return /******/ (function(modules) { // webpackBootstrap
 	      } else {
 	        vm.view = calendarHelper.getWeekView(vm.events, vm.viewDate);
 	      }
+
+	      vm.view.allDayEvents = vm.arrangeAllDay(vm.view.events.filter(function(event) {
+	        return event.allDay || !moment(event.startsAt).isSame(event.endsAt, 'day');
+	      }));
+	      console.log(vm.view.allDayEvents);
+
+	      vm.view.nonAllDayEvents = vm.view.events.filter(function(event) {
+	        return !event.allDay && moment(event.startsAt).isSame(event.endsAt, 'day');
+	      });
+
 	    });
+
+	    vm.arrangeAllDay = function(events) {
+	      var rows = [];
+	      angular.forEach(events, function(e) {
+	        var rowInsert = -1;
+	        e.draggable = e.daySpan !== 7;
+	        for (var i = 0; i < rows.length; i++) {
+	          if (vm.fitsInRow(e, rows[i])) {
+	            rowInsert = i;
+	            break;
+	          }
+	        }
+	        if (rowInsert === -1) {
+	          rows.push([e]);
+	        } else {
+	          rows[rowInsert].push(e);
+	        }
+	      });
+	      return rows;
+	    };
+
+	    vm.getSlotsTaken = function(e) {
+	      var slotsTaken = [];
+	      for (var i = e.dayOffset; i < e.dayOffset + e.daySpan; i++) {
+	        slotsTaken.push(i);
+	      }
+	      return slotsTaken;
+	    };
+
+	    vm.fitsInRow = function(event, row) {
+	      var rowSlotsTaken = [];
+	      var eventSlotsTaken = vm.getSlotsTaken(event);
+	      for (var x = 0; x < row.length; x++) {
+	        rowSlotsTaken = rowSlotsTaken.concat(vm.getSlotsTaken(row[x]));
+	      }
+	      for (var i = 0; i < eventSlotsTaken.length; i++) {
+	        if (rowSlotsTaken.includes(eventSlotsTaken[i])) {
+	          return false;
+	        }
+	      }
+	      return true;
+	    };
 
 	    vm.weekDragged = function(event, daysDiff, minuteChunksMoved) {
 
@@ -821,7 +873,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    };
 
-	    vm.tempTimeChanged = function(event, minuteChunksMoved) {
+	    vm.tempTimeChanged = function(event, minuteChunksMoved, ignore) {
+	      if (ignore) {
+	        return;
+	      }
 	      var minutesDiff = minuteChunksMoved * vm.dayViewSplit;
 	      event.tempStartsAt = moment(event.startsAt).add(minutesDiff, 'minutes').toDate();
 	    };
@@ -1765,6 +1820,18 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    }
 
+	    function dedupe(events) {
+	      var bridge = {};
+	      var ret = [];
+	      events.forEach(function(e) {
+	        bridge[e.id] = e;
+	      });
+	      for (var k in bridge) {
+	        ret.push(bridge[k]);
+	      }
+	      return ret;
+	    }
+
 	    function filterEventsInPeriod(events, startPeriod, endPeriod) {
 	      return events.filter(function(event) {
 	        return eventIsInPeriod(event, startPeriod, endPeriod);
@@ -2007,9 +2074,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var weekView = getWeekView(events, viewDate);
 	      var newEvents = [];
 	      weekView.days.forEach(function(day) {
+
+	        var dayEvents = filterEventsInPeriod(
+	          weekView.events,
+	          moment(day.date).startOf('day').toDate(),
+	          moment(day.date).endOf('day').toDate()
+	        );
+	        /*
 	        var dayEvents = weekView.events.filter(function(event) {
 	          return moment(event.startsAt).startOf('day').isSame(moment(day.date).startOf('day'));
 	        });
+	        */
 	        var newDayEvents = getDayView(
 	          dayEvents,
 	          day.date,
@@ -2019,7 +2094,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        );
 	        newEvents = newEvents.concat(newDayEvents);
 	      });
-	      weekView.events = newEvents;
+	      weekView.events = dedupe(newEvents);
 	      return weekView;
 	    }
 
