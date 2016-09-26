@@ -780,7 +780,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      vm.view.allDayEvents = vm.arrangeAllDay(vm.view.events.filter(function(event) {
 	        return event.allDay || !moment(event.startsAt).isSame(event.endsAt, 'day');
 	      }));
-	      console.log(vm.view.allDayEvents);
 
 	      vm.view.nonAllDayEvents = vm.view.events.filter(function(event) {
 	        return !event.allDay && moment(event.startsAt).isSame(event.endsAt, 'day');
@@ -2080,11 +2079,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	          moment(day.date).startOf('day').toDate(),
 	          moment(day.date).endOf('day').toDate()
 	        );
-	        /*
-	        var dayEvents = weekView.events.filter(function(event) {
-	          return moment(event.startsAt).startOf('day').isSame(moment(day.date).startOf('day'));
-	        });
-	        */
 	        var newDayEvents = getDayView(
 	          dayEvents,
 	          day.date,
