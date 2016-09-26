@@ -33,7 +33,6 @@ angular
       vm.view.allDayEvents = vm.arrangeAllDay(vm.view.events.filter(function(event) {
         return event.allDay || !moment(event.startsAt).isSame(event.endsAt, 'day');
       }));
-      console.log(vm.view.allDayEvents);
 
       vm.view.nonAllDayEvents = vm.view.events.filter(function(event) {
         return !event.allDay && moment(event.startsAt).isSame(event.endsAt, 'day');
